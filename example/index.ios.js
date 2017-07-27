@@ -6,6 +6,7 @@ import React, {
 import {
   AlertIOS,
   AppRegistry,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -19,6 +20,7 @@ class VideoPlayer extends Component {
     super(props);
     this.onLoad = this.onLoad.bind(this);
     this.onProgress = this.onProgress.bind(this);
+    this.onBuffer = this.onBuffer.bind(this);
   }
   state = {
     rate: 1,
@@ -29,15 +31,22 @@ class VideoPlayer extends Component {
     currentTime: 0.0,
     controls: false,
     paused: true,
-    skin: 'custom'
+    skin: 'custom',
+    ignoreSilentSwitch: null,
+    isBuffering: false,
   };
 
   onLoad(data) {
+    console.log('On load fired!');
     this.setState({duration: data.duration});
   }
 
   onProgress(data) {
     this.setState({currentTime: data.currentTime});
+  }
+
+  onBuffer({ isBuffering }: { isBuffering: boolean }) {
+    this.setState({ isBuffering });
   }
 
   getCurrentTimePercentage() {
@@ -99,6 +108,18 @@ class VideoPlayer extends Component {
     )
   }
 
+  renderIgnoreSilentSwitchControl(ignoreSilentSwitch) {
+    const isSelected = (this.state.ignoreSilentSwitch == ignoreSilentSwitch);
+
+    return (
+      <TouchableOpacity onPress={() => { this.setState({ignoreSilentSwitch: ignoreSilentSwitch}) }}>
+        <Text style={[styles.controlOption, {fontWeight: isSelected ? "bold" : "normal"}]}>
+          {ignoreSilentSwitch}
+        </Text>
+      </TouchableOpacity>
+    )
+  }
+
   renderCustomSkin() {
     const flexCompleted = this.getCurrentTimePercentage() * 100;
     const flexRemaining = (1 - this.getCurrentTimePercentage()) * 100;
@@ -107,14 +128,16 @@ class VideoPlayer extends Component {
       <View style={styles.container}>
         <TouchableOpacity style={styles.fullScreen} onPress={() => {this.setState({paused: !this.state.paused})}}>
           <Video
-            source={{uri: "broadchurch"}}
+            source={require('./broadchurch.mp4')}
             style={styles.fullScreen}
             rate={this.state.rate}
             paused={this.state.paused}
             volume={this.state.volume}
             muted={this.state.muted}
+            ignoreSilentSwitch={this.state.ignoreSilentSwitch}
             resizeMode={this.state.resizeMode}
             onLoad={this.onLoad}
+            onBuffer={this.onBuffer}
             onProgress={this.onProgress}
             onEnd={() => { AlertIOS.alert('Done!') }}
             repeat={true}
@@ -148,6 +171,15 @@ class VideoPlayer extends Component {
               {this.renderResizeModeControl('stretch')}
             </View>
           </View>
+          <View style={styles.generalControls}>
+            {
+              (Platform.OS === 'ios') ?
+                <View style={styles.ignoreSilentSwitchControl}>
+                  {this.renderIgnoreSilentSwitchControl('ignore')}
+                  {this.renderIgnoreSilentSwitchControl('obey')}
+                </View> : null
+            }
+          </View>
 
           <View style={styles.trackingControls}>
             <View style={styles.progress}>
@@ -166,14 +198,16 @@ class VideoPlayer extends Component {
       <View style={styles.container}>
         <View style={styles.fullScreen}>
           <Video
-            source={{uri: "broadchurch"}}
+            source={require('./broadchurch.mp4')}
             style={videoStyle}
             rate={this.state.rate}
             paused={this.state.paused}
             volume={this.state.volume}
             muted={this.state.muted}
+            ignoreSilentSwitch={this.state.ignoreSilentSwitch}
             resizeMode={this.state.resizeMode}
             onLoad={this.onLoad}
+            onBuffer={this.onBuffer}
             onProgress={this.onProgress}
             onEnd={() => { AlertIOS.alert('Done!') }}
             repeat={true}
@@ -206,6 +240,15 @@ class VideoPlayer extends Component {
               {this.renderResizeModeControl('contain')}
               {this.renderResizeModeControl('stretch')}
             </View>
+          </View>
+          <View style={styles.generalControls}>
+            {
+              (Platform.OS === 'ios') ?
+                <View style={styles.ignoreSilentSwitchControl}>
+                  {this.renderIgnoreSilentSwitchControl('ignore')}
+                  {this.renderIgnoreSilentSwitchControl('obey')}
+                </View> : null
+            }
           </View>
         </View>
 
@@ -276,6 +319,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   resizeModeControl: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  ignoreSilentSwitchControl: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
